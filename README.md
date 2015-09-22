@@ -44,7 +44,8 @@ There are other docker file parse modules for JavaScript, like
 `dockerfile-parse` and `dockerfile-parser`, this module differs in the follow
 aspects:
 
-* written from a translation of the docker parser.go, so
+* keeps the ordering of the commands (as they occur in the dockerfile)
+* written from a translation of the docker parser.go
 * properly handles character escaping and quoting, e.g. ENV myName="John Doe" myDog=Rex\ The\ Dog
 * handles multi-line commands (i.e. have a line continuance '\' at the end)
 * can optionally include the comments
