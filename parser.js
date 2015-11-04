@@ -271,9 +271,9 @@ function splitCommand(line) {
     // Make sure we get the same results irrespective of leading/trailing spaces
     var match = line.match(TOKEN_WHITESPACE);
     if (!match) {
-        return { name: line, rest: '' };
+        return { name: line.toUpperCase(), rest: '' };
     }
-    var name = line.substr(0, match.index);
+    var name = line.substr(0, match.index).toUpperCase();
     var rest = line.substr(match.index + match[0].length);
 
     return { name: name, rest: rest };
@@ -348,6 +348,7 @@ function parse(contents, options) {
     var lines = contents.split(/[\r?\n]/);
     var parseResult;
     var remainder = '';
+    var includeComments = options && options['includeComments'];
 
     for (i = 0; i < lines.length; i++) {
         lineno = i + 1;
@@ -359,9 +360,7 @@ function parse(contents, options) {
 
         parseResult = parseLine(line, lineno);
         if (parseResult.command) {
-            if (parseResult.command.name !== 'COMMENT' ||
-                options.includeComments)
-            {
+            if (parseResult.command.name !== 'COMMENT' || includeComments) {
                 commands.push(parseResult.command);
             }
         }
