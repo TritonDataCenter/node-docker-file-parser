@@ -2,6 +2,66 @@ var fs = require('fs')
 var tape = require('tape')
 var dockerfileParser = require('../parser')
 
+
+tape('every cmd', function (t) {
+  var lines = [
+    'FROM busybox:latest',
+
+    'ADD foo.txt /',
+
+    'ARG arg1',
+    'ARG arg2=',
+    'ARG arg3=',
+    'ARG arg4=four',
+    'ARG arg5="oh yeah"',
+
+    'CMD shell string format',
+    'CMD ["array", "format"]',
+
+    'COPY foo.bar foo.baz /doo/',
+    'COPY ["foo bar", "foo baz", "/doo/"]',
+
+    'ENTRYPOINT shell string format',
+    'ENTRYPOINT ["array", "format"]',
+
+    'ENV key value',
+    'ENV key2=value2',
+    'ENV key3=value\ three= key4="value four"',
+
+    'EXPOSE 80',
+    'EXPOSE 8080 9080 1',
+
+    'LABEL key=value',
+    'LABEL key3=value\ three= key4="value four"',
+
+    'MAINTAINER I\'m the maintainer',
+
+    'ONBUILD ADD . /',
+    'ONBUILD RUN /usr/local/bin/python-build --dir /app/src',
+
+    'RUN /usr/local/bin/python-build --dir /app/src',
+    'RUN apt-get update && apt-get install -y x11vnc xvfb firefox',
+
+    'STOPSIGNAL -1',
+    'STOPSIGNAL 18',
+
+    'USER daemon',
+
+    'VOLUME ["/data"]',
+    'VOLUME /var/log /var/db',
+
+    'WORKDIR /',
+    'WORKDIR /path\ to\ workdir/other\ path/here'
+  ];
+  var dockerFile = lines.join('\n');
+  var commands = dockerfileParser.parse(dockerFile);
+
+  t.equal(commands.length, lines.length);
+
+  t.end();
+});
+
+
 tape('should parse a Dockerfile', function (t) {
 
   var dname = __dirname;
@@ -56,6 +116,23 @@ tape('case insensitive', function (t) {
   t.equal(commands[0].name, 'FROM', 'Command should be FROM');
   t.equal(commands[1].name, 'ADD',  'Command should be ADD');
   t.equal(commands[2].name, 'COPY', 'Command should be COPY');
+
+  t.end();
+});
+
+
+tape('multiline', function (t) {
+  var lines = [
+    'FROM busybox',
+    'MAINTAINER "Docker \\',
+    'IO <io@\\',
+    'docker.com>"'
+  ];
+  var dockerFile = lines.join('\n');
+  var commands = dockerfileParser.parse(dockerFile);
+
+  t.equal(commands.length, 2);
+  t.equal(commands[1].args, '"Docker IO <io@docker.com>"');
 
   t.end();
 });

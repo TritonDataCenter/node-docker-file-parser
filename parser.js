@@ -41,15 +41,10 @@ function parseSubCommand(cmd) {
     return false;
 }
 
-// Parse environment like statements. Note that this does *not* handle
-// variable interpolation, which will be handled in the evaluator.
-function parseNameVal(cmd) {
-    // This is kind of tricky because we need to support the old
-    // variant:   KEY name value
-    // as well as the new one:    KEY name=value ...
-    // The trigger to know which one is being used will be whether we hit
-    // a space or = first.  space ==> old, "=" ==> new
-
+// Helper to parse words (i.e space delimited or quoted strings) in a statement.
+// The quotes are preserved as part of this function and they are stripped later
+// as part of processWords().
+function parseWords(rest) {
     var S_inSpaces = 1;
     var S_inWord   = 2;
     var S_inQuote  = 3;
@@ -61,7 +56,6 @@ function parseNameVal(cmd) {
     var blankOK = false;
     var ch;
     var pos;
-    var rest = cmd.rest;
 
     for (pos = 0; pos <= rest.length; pos++) {
         if (pos != rest.length) {
@@ -88,15 +82,6 @@ function parseNameVal(cmd) {
                 phase = S_inSpaces;
                 if (blankOK || word.length > 0) {
                     words.push(word);
-
-                    // Look for = and if not there assume
-                    // we're doing the old stuff and
-                    // just read the rest of the line
-                    if (!word.indexOf('=') >= 0) {
-                        word = rest.substr(pos).trim();
-                        words.push(word);
-                        break;
-                    }
                 }
                 word = '';
                 blankOK = false;
@@ -139,6 +124,20 @@ function parseNameVal(cmd) {
         }
     }
 
+    return words;
+}
+
+// Parse environment like statements. Note that this does *not* handle
+// variable interpolation, which will be handled in the evaluator.
+function parseNameVal(cmd) {
+    // This is kind of tricky because we need to support the old
+    // variant:   KEY name value
+    // as well as the new one:    KEY name=value ...
+    // The trigger to know which one is being used will be whether we hit
+    // a space or = first.  space ==> old, "=" ==> new
+    var word;
+    var words = parseWords(cmd.rest);
+
     cmd.args = {};
 
     if (words.length === 0) {
@@ -150,7 +149,7 @@ function parseNameVal(cmd) {
         // Old format (KEY name value)
         var strs = cmd.rest.split(TOKEN_WHITESPACE);
         if (strs.length < 2) {
-            cmd.error = cmd.name + ' must have two arguments, got ' + rest;
+            cmd.error = cmd.name + ' must have two arguments, got ' + cmd.rest;
             return false;
         }
 
@@ -181,6 +180,19 @@ function parseEnv(cmd) {
 
 function parseLabel(cmd) {
     return parseNameVal(cmd);
+}
+
+// Parses a statement containing one or more keyword definition(s) and/or
+// value assignments, like `name1 name2= name3="" name4=value`.
+// Note that this is a stricter format than the old format of assignment,
+// allowed by parseNameVal(), in a way that this only allows assignment of the
+// form `keyword=[<value>]` like  `name2=`, `name3=""`, and `name4=value` above.
+// In addition, a keyword definition alone is of the form `keyword` like `name1`
+// above. And the assignments `name2=` and `name3=""` are equivalent and
+// assign an empty value to the respective keywords.
+function parseNameOrNameVal(cmd) {
+    cmd.args = parseWords(cmd.rest);
+    return true;
 }
 
 // Parses a whitespace-delimited set of arguments. The result is a
@@ -246,6 +258,7 @@ function parseJsonOrList(cmd) {
 // be incorporated directly into the existing AST as a next.
 var commandParsers = {
     'ADD':        parseJsonOrList,
+    'ARG':        parseNameOrNameVal,
     'CMD':        parseJsonOrString,
     'COPY':       parseJsonOrList,
     'ENTRYPOINT': parseJsonOrString,
@@ -256,6 +269,7 @@ var commandParsers = {
     'MAINTAINER': parseString,
     'ONBUILD':    parseSubCommand,
     'RUN':        parseJsonOrString,
+    'STOPSIGNAL': parseString,
     'USER':       parseString,
     'VOLUME':     parseJsonOrList,
     'WORKDIR':    parseString
@@ -307,13 +321,14 @@ function parseLine(line, lineno) {
 
     var commandParserFn = commandParsers[command.name];
     if (!commandParserFn) {
-        // Ignore invalid Dockerfile instructions
+        // Invalid Dockerfile instruction, but allow it and move on.
         // log.debug('Invalid Dockerfile command:', command.name);
-        return { command: null, remainder: '' };
+        commandParserFn = parseString;
     }
 
     if (commandParserFn(command)) {
         // Successfully converted the arguments.
+        command.raw = line;
         delete command.rest;
     }
 
@@ -353,7 +368,7 @@ function parse(contents, options) {
     for (i = 0; i < lines.length; i++) {
         lineno = i + 1;
         if (remainder) {
-            line = remainder + ' ' + lines[i];
+            line = remainder + lines[i];
         } else {
             line = lines[i];
         }
