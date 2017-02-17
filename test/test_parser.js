@@ -136,3 +136,34 @@ tape('multiline', function (t) {
 
   t.end();
 });
+
+
+tape('escape parser directive', function (t) {
+  var lines = [
+    '#escape = `',
+    '',
+    'FROM image',
+    'MAINTAINER foo@bar.com',
+    'ENV GOPATH `',
+    '\go',
+    'MAINTAINER "Docker `',
+    'IO <io@`',
+    'docker.com>"'
+  ];
+  var dockerFile = lines.join('\n');
+
+  var commands = dockerfileParser.parse(dockerFile);
+  t.equal(commands.length, 4);
+  t.deepEqual(commands[2].args, { GOPATH: 'go' });
+  t.equal(commands[3].args, '"Docker IO <io@docker.com>"');
+
+  // Try again, this time using the default escape directive.
+  dockerFile = dockerFile.replace(/`/g, '\\');
+
+  commands = dockerfileParser.parse(dockerFile);
+  t.equal(commands.length, 4);
+  t.deepEqual(commands[2].args, { GOPATH: 'go' });
+  t.equal(commands[3].args, '"Docker IO <io@docker.com>"');
+
+  t.end();
+});

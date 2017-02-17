@@ -11,12 +11,19 @@
 var TOKEN_WHITESPACE        = RegExp(/[\t\v\f\r ]+/);
 var TOKEN_LINE_CONTINUATION = RegExp(/\\[ \t]*$/);
 var TOKEN_COMMENT           = RegExp(/^#.*$/);
+var TOKEN_ESCAPE_DIRECTIVE  = RegExp(/^#[ \t]*escape[ \t]*=[ \t]*(.).*$/);
+
 var errDockerfileNotStringArray = new Error('When using JSON array syntax, '
                                 + 'arrays must be comprised of strings only.');
 
 
 function isSpace(s) {
     return s.match(/^\s$/);
+}
+
+// Escape special regular expression characters in the provided string.
+function regexEscape(str) {
+    return str.replace(/[.?*+^$[\]\\(){}|-]/g, "\\$&");
 }
 
 /**
@@ -294,8 +301,10 @@ function splitCommand(line) {
 }
 
 // parse a line and return the remainder.
-function parseLine(line, lineno) {
+function parseLine(line, lineno, options) {
     var command = null;
+    var lineContinuationRegex = (options && options.lineContinuationRegex
+        || TOKEN_LINE_CONTINUATION);
 
     line = line.trim();
 
@@ -310,9 +319,9 @@ function parseLine(line, lineno) {
         return { command: command, remainder: '' };
     }
 
-    if (line.match(TOKEN_LINE_CONTINUATION)) {
+    if (line.match(lineContinuationRegex)) {
         // Line continues on next line.
-        var remainder = line.replace(TOKEN_LINE_CONTINUATION, '', 'g');
+        var remainder = line.replace(lineContinuationRegex, '', 'g');
         return { command: null, remainder: remainder };
     }
 
@@ -361,7 +370,10 @@ function parse(contents, options) {
     var line;
     var lineno;
     var lines = contents.split(/[\r?\n]/);
+    var lookingForDirectives = true;
+    var parseOptions = {};
     var parseResult;
+    var regexMatch;
     var remainder = '';
     var includeComments = options && options['includeComments'];
 
@@ -373,7 +385,30 @@ function parse(contents, options) {
             line = lines[i];
         }
 
-        parseResult = parseLine(line, lineno);
+        if (lookingForDirectives) {
+            // Handle the parser directive '# escape=<char>. Parser directives
+            // must precede any builder instruction or other comments, and
+            // cannot be repeated.
+            regexMatch = line.match(TOKEN_ESCAPE_DIRECTIVE);
+            if (regexMatch) {
+                if (regexMatch[1] != '`' && regexMatch[1] != '\\') {
+                    throw new Error('invalid ESCAPE "' + regexMatch[1]
+                        + '". Must be ` or \\');
+                }
+                if (parseOptions.lineContinuationRegex) {
+                    throw new Error(
+                        'only one escape parser directive can be used');
+                }
+                parseOptions.lineContinuationRegex = RegExp(
+                    regexEscape(regexMatch[1]) + '[ \t]*$');
+                continue;
+            }
+        }
+        // Once a comment, empty line or builder instruction has been processed,
+        // Docker no longer looks for parser directives.
+        lookingForDirectives = false;
+
+        parseResult = parseLine(line, lineno, parseOptions);
         if (parseResult.command) {
             if (parseResult.command.name !== 'COMMENT' || includeComments) {
                 commands.push(parseResult.command);
