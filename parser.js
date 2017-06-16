@@ -174,7 +174,7 @@ function parseNameVal(cmd) {
                 return false;
             }
             var parts = word.split('=');
-            cmd.args[parts[0]] = parts.slice(1).join('=');
+            cmd.args[parts[0]] = parts.slice(1).join('=').replace(/^"(.+?)"$/g, '$1');
         }
     }
 

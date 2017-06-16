@@ -12,4 +12,5 @@ EXPOSE 80
 EXPOSE 9989
 VOLUME /srv/data2
 RUN cd /srv/app && make build2
+LABEL name="Some Name"
 ENTRYPOINT node index.js
