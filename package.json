@@ -7,9 +7,9 @@
     "docker",
     "parser"
   ],
-  "homepage": "https://github.com/joyent/docker-file-parse",
+  "homepage": "https://github.com/joyent/docker-file-parser",
   "bugs": {
-    "url": "https://github.com/joyent/docker-file-parse/issues"
+    "url": "https://github.com/joyent/docker-file-parser/issues"
   },
   "license": "MPL",
   "author": {
