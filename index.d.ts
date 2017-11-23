@@ -2,7 +2,7 @@
 
 export interface CommandEntry {
     name: string;
-    args: string[];
+    args: string | string[] | { [key: string]: string };
     lineno: number;
     raw: string;
     error?: string;
