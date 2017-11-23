@@ -22,6 +22,7 @@
     }
   ],
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "set -e; for t in test/test_*.js; do node $t; done"
   },
