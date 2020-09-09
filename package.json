@@ -1,6 +1,6 @@
 {
   "name": "docker-file-parser",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Parses a Dockerfile and returns an array of commands.",
   "keywords": [
     "dockerfile",
