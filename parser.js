@@ -369,7 +369,7 @@ function parse(contents, options) {
     var i;
     var line;
     var lineno;
-    var lines = contents.split(/[\r?\n]/);
+    var lines = contents.split(/\r?\n/);
     var lookingForDirectives = true;
     var parseOptions = {};
     var parseResult;

@@ -167,3 +167,19 @@ tape('escape parser directive', function (t) {
 
   t.end();
 });
+
+
+tape('correctly parses commands with question mark', function (t) {
+  var lines = [
+    'FROM cirrusci/wget',
+    '',
+    'RUN wget http://google.com?hello=world'
+  ];
+  var dockerFile = lines.join('\n');
+
+  var commands = dockerfileParser.parse(dockerFile);
+  t.equal(commands.length, 2);
+  t.deepEqual(commands[1].args, 'wget http://google.com?hello=world');
+
+  t.end();
+});
