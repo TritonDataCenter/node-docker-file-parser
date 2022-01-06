@@ -183,3 +183,13 @@ tape('correctly parses commands with question mark', function (t) {
 
   t.end();
 });
+
+tape('inline comments', function (t) {
+
+  var dname = __dirname;
+  var dockerFile = fs.readFileSync(dname + '/Dockerfile-with-inline-comment', 'utf8');
+  var commands = dockerfileParser.parse(dockerFile);
+
+  t.equal(commands[1].lineno, 4,  'Line number should be 4');
+  t.end();
+});

@@ -11,6 +11,7 @@
 var TOKEN_WHITESPACE        = RegExp(/[\t\v\f\r ]+/);
 var TOKEN_LINE_CONTINUATION = RegExp(/\\[ \t]*$/);
 var TOKEN_COMMENT           = RegExp(/^#.*$/);
+var TOKEN_INLINE_COMMENT    = RegExp(/^[ \t]+#.*$/);
 var TOKEN_ESCAPE_DIRECTIVE  = RegExp(/^#[ \t]*escape[ \t]*=[ \t]*(.).*$/);
 
 var errDockerfileNotStringArray = new Error('When using JSON array syntax, '
@@ -379,10 +380,15 @@ function parse(contents, options) {
 
     for (i = 0; i < lines.length; i++) {
         lineno = i + 1;
+        var nextLine = lines[i];
+        // remove inline RUN # comment see https://github.com/joyent/node-docker-file-parser/issues/8
+        if (nextLine.match(TOKEN_INLINE_COMMENT)) {
+            nextLine = "\\";
+        }
         if (remainder) {
-            line = remainder + lines[i];
+            line = remainder + nextLine;
         } else {
-            line = lines[i];
+            line = nextLine;
         }
 
         if (lookingForDirectives) {
