@@ -193,3 +193,29 @@ tape('inline comments', function (t) {
   t.equal(commands[1].lineno, 4,  'Line number should be 4');
   t.end();
 });
+
+tape('line numbers for files without whitespace before inline comments', function (t) {
+
+  var dname = __dirname;
+  var dockerFile = fs.readFileSync(dname + '/Dockerfile-with-inline-comment-no-ws', 'utf8');
+  var commands = dockerfileParser.parse(dockerFile);
+
+  t.equal(commands[0].lineno, 1,  'Line number should be 1');
+  t.equal(commands[1].lineno, 5,  'Line number should be 5');
+  t.equal(commands[1].args, 'cd /srv/app &&     echo "foo" &&     make build2',  'Args should be correct');
+  t.equal(commands[2].lineno, 6,  'Line number should be 6');
+  t.end();
+});
+
+tape('line numbers line up for complex dockerfiles', function (t) {
+  var dname = __dirname;
+  var dockerFile = fs.readFileSync(dname + '/ComplexDockerfile', 'utf8');
+  var commands = dockerfileParser.parse(dockerFile);
+  t.equal(commands[0].lineno, 1,  'line number should be 1');
+  t.equal(commands[1].lineno, 4,  'line number should be 4');
+  t.equal(commands[2].lineno, 6,  'line number should be 6');
+  t.equal(commands[3].lineno, 56, 'line number should be 56');
+  t.equal(commands[4].lineno, 58, 'line number should be 58');
+  t.equal(commands[5].lineno, 89, 'line number should be 89');
+  t.end();
+});
