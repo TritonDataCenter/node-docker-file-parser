@@ -1,0 +1,6 @@
+FROM quarry/monnode
+RUN cd /srv/app && \
+    echo "foo" && \
+# inline comment
+    make build2
+ENTRYPOINT node index.js
