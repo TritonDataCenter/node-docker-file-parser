@@ -68,7 +68,7 @@ tape('should parse a Dockerfile', function (t) {
   var dockerFile = fs.readFileSync(dname + '/Dockerfile', 'utf8');
   var commands = dockerfileParser.parse(dockerFile);
 
-  var numCommands = 15;
+  var numCommands = 16;
   t.equal(commands.length, numCommands, 'Check number of commands');
 
   var from = commands[0];
@@ -84,6 +84,11 @@ tape('should parse a Dockerfile', function (t) {
   t.equal(Object.keys(env.args).length, 2, 'ENV command has 2 keys');
   t.equal(env.args['VAR2'], '20', 'ENV VAR2 check');
   t.equal(env.args['VAR3'], '30', 'ENV VAR3 check');
+
+  var label = commands[14];
+  t.equal(label.name, 'LABEL', '15th command is LABEL');
+  t.equal(Object.keys(label.args).length, 1, 'LABEL command has 1 key');
+  t.equal(label.args['name'], 'Some Name', 'LABEL name check');
 
   t.equal(commands[numCommands-1].name, 'ENTRYPOINT',
             'Last command should be ENTRYPOINT');
